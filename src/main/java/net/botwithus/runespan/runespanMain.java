@@ -1,34 +1,28 @@
 package net.botwithus.runespan;
 
 import net.botwithus.api.game.hud.inventories.Backpack;
-import net.botwithus.api.game.hud.inventories.Bank;
 import net.botwithus.internal.scripts.ScriptDefinition;
-import net.botwithus.rs3.game.*;
-import net.botwithus.rs3.game.actionbar.ActionBar;
-import net.botwithus.rs3.game.queries.builders.animations.SpotAnimationQuery;
+import net.botwithus.rs3.game.Area;
+import net.botwithus.rs3.game.Client;
+import net.botwithus.rs3.game.Coordinate;
+import net.botwithus.rs3.game.Travel;
 import net.botwithus.rs3.game.queries.builders.characters.NpcQuery;
 import net.botwithus.rs3.game.queries.builders.objects.SceneObjectQuery;
 import net.botwithus.rs3.game.queries.results.EntityResultSet;
-import net.botwithus.rs3.game.scene.entities.animation.SpotAnimation;
 import net.botwithus.rs3.game.scene.entities.characters.npc.Npc;
 import net.botwithus.rs3.game.scene.entities.characters.player.LocalPlayer;
 import net.botwithus.rs3.game.scene.entities.object.SceneObject;
 import net.botwithus.rs3.game.skills.Skills;
-import net.botwithus.rs3.imgui.BGList;
 import net.botwithus.rs3.imgui.NativeInteger;
 import net.botwithus.rs3.script.Execution;
 import net.botwithus.rs3.script.LoopingScript;
 import net.botwithus.rs3.script.config.ScriptConfig;
 import net.botwithus.rs3.util.RandomGenerator;
 
-import java.awt.*;
 import java.util.*;
-import java.util.List;
-import java.util.regex.Pattern;
 
 public class runespanMain extends LoopingScript {
 
-    public NativeInteger currentVal = new NativeInteger(0);
     public long startTime;
     public LocalPlayer lp;
     public Coordinate capturedLocation;
@@ -49,9 +43,8 @@ public class runespanMain extends LoopingScript {
         this.loopDelay = RandomGenerator.nextInt(900, 1700);
         lp = Client.getLocalPlayer();
         startTime = System.currentTimeMillis();
-        stack_requirement = RandomGenerator.nextInt(500,1200);
+        stack_requirement = RandomGenerator.nextInt(1000,2000);
         detectLevel = true;
-        initializeEntities();
         return super.initialize();
     }
 
@@ -132,58 +125,77 @@ public class runespanMain extends LoopingScript {
         }
     }
 
-    private static Map<Integer, EntityPair> entitiesByLevel = new HashMap<>();
+    private static Map<Integer, EntityPair> entitiesByLevel = new HashMap<Integer, EntityPair>() {{
+        put(95, new EntityPair(
+                Map.of(70471, true),
+                Map.of()));
+        put(90, new EntityPair(
+                Map.of(70470, true),
+                Map.of(15416, true)));
+        put(83, new EntityPair(
+                Map.of(70469, true),
+                Map.of()));
+        put(77, new EntityPair(
+                Map.of(70468, true),
+                Map.of(15415, true)));
+        put(65, new EntityPair(
+                Map.of(70467, true),
+                Map.of(15414, true)));
+        put(54, new EntityPair(
+                Map.of(70466, true),
+                Map.of(15413, true)));
+        put(44, new EntityPair(
+                Map.of(70465, true),
+                Map.of(15412, true)));
+        put(40, new EntityPair(
+                Map.of(70464, true),
+                Map.of(15411, true)));
+        put(35, new EntityPair(
+                Map.of(70463, true),
+                Map.of(15410, true)));
+        put(27, new EntityPair(
+                Map.of(70462, false),
+                Map.of(15409, false)));
+        put(20, new EntityPair(
+                Map.of(70461, false),
+                Map.of(15408, false)));
+        put(17, new EntityPair(
+                Map.of(70460, false),
+                Map.of()));
+        put(14, new EntityPair(
+                Map.of(70459, false),
+                Map.of(15407, false, 15277, false)));
+        put(9, new EntityPair(
+                Map.of(70458, false),
+                Map.of(15406, false, 15276, false)));
+        put(5, new EntityPair(
+                Map.of(70457, false),
+                Map.of(15405, false)));
+        put(1, new EntityPair(
+                Map.of(70456, false, 70455, false),
+                Map.of(15404, false, 15403, false, 15273, false, 15274, false)
+        ));
+    }};
 
     private static class EntityPair {
-        List<Integer> objs;
-        List<Integer> npcs;
+        Map<Integer, Boolean> objs;
+        Map<Integer, Boolean> npcs;
 
-        EntityPair(List<Integer> objs, List<Integer> npcs) {
+        EntityPair(Map<Integer, Boolean> objs, Map<Integer, Boolean> npcs) {
             this.objs = objs;
             this.npcs = npcs;
         }
-    }
-
-    private static void initializeEntities() {
-        // Level 95+
-        entitiesByLevel.put(95, new EntityPair(Arrays.asList(70471), Arrays.asList(70471)));
-        // Level 90+
-        entitiesByLevel.put(90, new EntityPair(Arrays.asList(70470), Arrays.asList(70470, 15416)));
-        // Level 83+
-        entitiesByLevel.put(83, new EntityPair(Arrays.asList(70469), Arrays.asList(70469)));
-        // Level 77+
-        entitiesByLevel.put(77, new EntityPair(Arrays.asList(70468), Arrays.asList(70468, 15415)));
-        // Level 65+
-        entitiesByLevel.put(65, new EntityPair(Arrays.asList(70467), Arrays.asList(70467, 15414)));
-        // Level 54+
-        entitiesByLevel.put(54, new EntityPair(Arrays.asList(70466), Arrays.asList(70466, 15413)));
-        // Level 44+
-        entitiesByLevel.put(44, new EntityPair(Arrays.asList(70465), Arrays.asList(70465, 15412)));
-        // Level 40+
-        entitiesByLevel.put(40, new EntityPair(Arrays.asList(70464), Arrays.asList(70464, 15411)));
-        // Level 35+
-        entitiesByLevel.put(35, new EntityPair(Arrays.asList(70463), Arrays.asList(70463, 15410)));
-        // Level 27+
-        entitiesByLevel.put(27, new EntityPair(Arrays.asList(70462), Arrays.asList(70462, 15409)));
-        // Level 20+
-        entitiesByLevel.put(20, new EntityPair(Arrays.asList(70461), Arrays.asList(70461, 15408)));
-        // Level 17+
-        entitiesByLevel.put(17, new EntityPair(Arrays.asList(70460), Arrays.asList(70460)));
-        // Level 14+
-        entitiesByLevel.put(14, new EntityPair(Arrays.asList(70459), Arrays.asList(70459, 15407)));
-        // Level 9+
-        entitiesByLevel.put(9, new EntityPair(Arrays.asList(70458), Arrays.asList(70458, 15406)));
-        // Level 5+
-        entitiesByLevel.put(5, new EntityPair(Arrays.asList(70457), Arrays.asList(70457, 15405)));
-        // Level 1+
-        entitiesByLevel.put(1, new EntityPair(Arrays.asList(70456, 70455), Arrays.asList(70456, 70455, 15404, 15403)));
     }
 
     public static List<Integer> getAccessibleObjects(int runecraftingLevel) {
         List<Integer> accessibleObjects = new ArrayList<>();
         entitiesByLevel.forEach((level, pair) -> {
             if (runecraftingLevel >= level) {
-                accessibleObjects.addAll(pair.objs);
+                pair.objs.forEach((id, isMember) -> {
+                    if (Client.isMember() || !isMember) { // Check membership status
+                        accessibleObjects.add(id);
+                    }
+                });
             }
         });
         return accessibleObjects;
@@ -193,18 +205,23 @@ public class runespanMain extends LoopingScript {
         List<Integer> accessibleNPCs = new ArrayList<>();
         entitiesByLevel.forEach((level, pair) -> {
             if (runecraftingLevel >= level) {
-                accessibleNPCs.addAll(pair.npcs);
+                pair.npcs.forEach((id, isMember) -> {
+                    if (Client.isMember() || !isMember) { // Check membership status
+                        accessibleNPCs.add(id);
+                    }
+                });
             }
         });
         return accessibleNPCs;
     }
+
 
     public void randomSleep() {
         int random = RandomGenerator.nextInt(1,100);
         if (random < 10 || focus) {
             return;
         } else {
-            int min = 1000;
+            int min = 750;
             int max = 8000;
             Execution.delay(RandomGenerator.nextInt(min, max));
         }
@@ -221,22 +238,10 @@ public class runespanMain extends LoopingScript {
         List<Integer> accessibleNPCs = getAccessibleNPCs(runecraftingLevel);
         println(accessibleNPCs);
         return npcScan.stream()
-                .filter(npc -> {
-                    boolean hasCoordinate = npc.getCoordinate() != null;
-                    return hasCoordinate;
-                })
-                .filter(npc -> {
-                    boolean isAccessible = accessibleNPCs.contains(npc.getConfigType().getId());
-                    return isAccessible;
-                })
-                .filter(npc -> {
-                    boolean isAnimating = npc.getAnimationId() != -1;
-                    return !isAnimating;
-                })
-                .filter(npc -> {
-                    boolean isInBoundary = boundary.contains(npc.getCoordinate());
-                    return isInBoundary;
-                })
+                .filter(npc -> npc.getCoordinate() != null)
+                .filter(npc -> accessibleNPCs.contains(npc.getConfigType().getId()))
+                .filter(npc -> npc.getAnimationId() == -1)
+                .filter(npc -> boundary.contains(npc.getCoordinate()))
                 .findFirst()
                 .map(npc -> {
                     boolean siphon = npc.interact("Siphon");
@@ -264,20 +269,11 @@ public class runespanMain extends LoopingScript {
         }
 
         List<Integer> accessibleObjects = getAccessibleObjects(runecraftingLevel);
-
+        println(accessibleObjects);
         return objectScan.stream()
-                .filter(object -> {
-                    boolean hasCoordinate = object.getCoordinate() != null;
-                    return hasCoordinate;
-                })
-                .filter(object -> {
-                    boolean isInBoundary = boundary.contains(object.getCoordinate());
-                    return isInBoundary;
-                })
-                .filter(object -> {
-                    boolean isAccessible = accessibleObjects.contains(object.getId());
-                    return isAccessible;
-                })
+                .filter(object -> object.getCoordinate() != null)
+                .filter(object -> boundary.contains(object.getCoordinate()))
+                .filter(object -> accessibleObjects.contains(object.getId()))
                 .findFirst()
                 .map(object -> {
                     boolean siphon = object.interact("Siphon");
