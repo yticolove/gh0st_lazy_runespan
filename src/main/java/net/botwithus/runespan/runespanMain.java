@@ -37,7 +37,7 @@ public class runespanMain extends LoopingScript {
     public int y_range = 7; //default
     public int runecraftingLevel = 50; //default
     public int stack_requirement;
-    public boolean detectLevel, boundarySet;
+    public boolean detectLevel, boundarySet, focus;
     public BotState currentState;
     public runespanMain(String name, ScriptConfig scriptConfig, ScriptDefinition scriptDefinition) {
         super(name, scriptConfig, scriptDefinition);
@@ -199,7 +199,19 @@ public class runespanMain extends LoopingScript {
         return accessibleNPCs;
     }
 
+    public void randomSleep() {
+        int random = RandomGenerator.nextInt(1,100);
+        if (random < 10 || focus) {
+            return;
+        } else {
+            int min = 1000;
+            int max = 8000;
+            Execution.delay(RandomGenerator.nextInt(min, max));
+        }
+    }
+
     public boolean siphonNPC() {
+        randomSleep();
         EntityResultSet<Npc> npcScan = NpcQuery.newQuery().results();
         if (npcScan.isEmpty()) {
             println("[ERROR] No NPC entities found in scan.");
@@ -244,6 +256,7 @@ public class runespanMain extends LoopingScript {
     }
 
     public boolean siphonObject() {
+        randomSleep();
         EntityResultSet<SceneObject> objectScan = SceneObjectQuery.newQuery().results();
         if (objectScan.isEmpty()) {
             println("[ERROR] No Objects found in scan.");

@@ -38,6 +38,7 @@ public class runespanUI extends ScriptGraphicsContext {
                 if (ImGui.BeginTabItem("Settings", 0)) {
                     ImGui.Text("==Settings==");
                     script.detectLevel = ImGui.Checkbox("Auto detect Runecrafting level", script.detectLevel);
+                    script.focus = ImGui.Checkbox("Focus mode (no waits between actions)", script.focus);
                     script.runecraftingLevel = ImGui.InputInt("Runecrafting level", script.runecraftingLevel);
                     script.x_range = ImGui.InputInt("x coordinate range", script.x_range);
                     script.y_range = ImGui.InputInt("y coordinate range", script.y_range);
