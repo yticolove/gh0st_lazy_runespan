@@ -155,7 +155,7 @@ public class runespanMain extends LoopingScript {
                 Map.of(15410, true)));
         put(27, new EntityPair(
                 Map.of(70462, false),
-                Map.of(15409, false)));
+                Map.of(15409, true)));
         put(20, new EntityPair(
                 Map.of(70461, false),
                 Map.of(15408, false)));
