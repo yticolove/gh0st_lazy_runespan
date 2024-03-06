@@ -65,9 +65,8 @@ public class runespanUI extends ScriptGraphicsContext {
                 }
                 ImGui.EndTabBar();
             }
-
-            ImGui.End();
         }
+        ImGui.End();
 
     }
 
