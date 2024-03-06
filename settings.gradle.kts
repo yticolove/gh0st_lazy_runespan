@@ -5,4 +5,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = "BotWithUsScript"
+rootProject.name = "gh0st lazy runespan"
