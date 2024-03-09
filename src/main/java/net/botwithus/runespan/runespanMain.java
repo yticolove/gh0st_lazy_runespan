@@ -2,10 +2,9 @@ package net.botwithus.runespan;
 
 import net.botwithus.api.game.hud.inventories.Backpack;
 import net.botwithus.internal.scripts.ScriptDefinition;
-import net.botwithus.rs3.game.Area;
-import net.botwithus.rs3.game.Client;
-import net.botwithus.rs3.game.Coordinate;
-import net.botwithus.rs3.game.Travel;
+import net.botwithus.rs3.game.*;
+import net.botwithus.rs3.game.movement.Movement;
+import net.botwithus.rs3.game.movement.NavPath;
 import net.botwithus.rs3.game.queries.builders.characters.NpcQuery;
 import net.botwithus.rs3.game.queries.builders.objects.SceneObjectQuery;
 import net.botwithus.rs3.game.queries.results.EntityResultSet;
@@ -13,6 +12,7 @@ import net.botwithus.rs3.game.scene.entities.characters.npc.Npc;
 import net.botwithus.rs3.game.scene.entities.characters.player.LocalPlayer;
 import net.botwithus.rs3.game.scene.entities.object.SceneObject;
 import net.botwithus.rs3.game.skills.Skills;
+import net.botwithus.rs3.imgui.BGList;
 import net.botwithus.rs3.imgui.NativeInteger;
 import net.botwithus.rs3.script.Execution;
 import net.botwithus.rs3.script.LoopingScript;
@@ -25,13 +25,9 @@ public class runespanMain extends LoopingScript {
 
     public long startTime;
     public LocalPlayer lp;
-    public Coordinate capturedLocation;
-    Area.Rectangular boundary;
-    public int x_range = 7; //default
-    public int y_range = 7; //default
     public int runecraftingLevel = 50; //default
     public int stack_requirement;
-    public boolean detectLevel, boundarySet, focus;
+    public boolean detectLevel, focus;
     public BotState currentState;
     public runespanMain(String name, ScriptConfig scriptConfig, ScriptDefinition scriptDefinition) {
         super(name, scriptConfig, scriptDefinition);
@@ -49,31 +45,22 @@ public class runespanMain extends LoopingScript {
     }
 
     public enum BotState {
-        BOUNDARY_NOT_SET,
         NEEDS_RUNE_ESSENCE,
-        NOT_IN_BOUNDARY,
         SIPHON_NPC,
         SIPHON_OBJECT,
         IDLE
     }
 
     private BotState determineState() {
-        if (!boundarySet) {
-            return BotState.BOUNDARY_NOT_SET;
+        if (!hasRuneEssence()) {
+            return BotState.NEEDS_RUNE_ESSENCE;
         }
-        if (!isInBoundary()) {
-            return BotState.NOT_IN_BOUNDARY;
-        } else {
-            if (!hasRuneEssence()) {
-                return BotState.NEEDS_RUNE_ESSENCE;
-            }
-            if (hasRuneEssence()) {
-                if (!isAnimating()) {
-                    if (hasEnoughEssence()) {
-                        return BotState.SIPHON_OBJECT;
-                    } else {
-                        return BotState.SIPHON_NPC;
-                    }
+        if (hasRuneEssence()) {
+            if (!isAnimating()) {
+                if (hasEnoughEssence()) {
+                    return BotState.SIPHON_OBJECT;
+                } else {
+                    return BotState.SIPHON_NPC;
                 }
             }
         }
@@ -88,27 +75,13 @@ public class runespanMain extends LoopingScript {
             println("[ERROR] Your defined runecrafting level cannot exceed the value of 120 or fall below the value of 1. Resetting to 99.");
             runecraftingLevel = 99;
         }
-        if (x_range > 10 || x_range < 3) {
-            println("[ERROR] Your x_range cannot exceed the value of 10 or fall below the value of 3. Resetting to 3.");
-            x_range = 3;
-        }
-        if (y_range > 10 || y_range < 3) {
-            println("[ERROR] Your y_range cannot exceed the value of 10 or fall below the value of 3. Resetting to 3.");
-            y_range = 3;
-        }
         if (detectLevel) {
             int detectedLevel = Skills.RUNECRAFTING.getLevel();
             println("Detected runecrafting level: " + detectedLevel);
             runecraftingLevel = detectedLevel;
         }
+
         switch (currentState) {
-            case BOUNDARY_NOT_SET:
-                println("[ERROR] Your boundary is not set! Please navigate to the settings panel and set your location.");
-                Execution.delay(10000);
-                return;
-            case NOT_IN_BOUNDARY:
-                navigateToBoundary();
-                return;
             case NEEDS_RUNE_ESSENCE:
                 gatherRuneEssence();
                 return;
@@ -192,7 +165,7 @@ public class runespanMain extends LoopingScript {
         entitiesByLevel.forEach((level, pair) -> {
             if (runecraftingLevel >= level) {
                 pair.objs.forEach((id, isMember) -> {
-                    if (Client.isMember() || !isMember) { // Check membership status
+                    if (Client.isMember() || !isMember) {
                         accessibleObjects.add(id);
                     }
                 });
@@ -206,7 +179,7 @@ public class runespanMain extends LoopingScript {
         entitiesByLevel.forEach((level, pair) -> {
             if (runecraftingLevel >= level) {
                 pair.npcs.forEach((id, isMember) -> {
-                    if (Client.isMember() || !isMember) { // Check membership status
+                    if (Client.isMember() || !isMember) {
                         accessibleNPCs.add(id);
                     }
                 });
@@ -241,7 +214,7 @@ public class runespanMain extends LoopingScript {
                 .filter(npc -> npc.getCoordinate() != null)
                 .filter(npc -> accessibleNPCs.contains(npc.getConfigType().getId()))
                 .filter(npc -> npc.getAnimationId() == -1)
-                .filter(npc -> boundary.contains(npc.getCoordinate()))
+                .filter(Locatable::isReachable)
                 .findFirst()
                 .map(npc -> {
                     boolean siphon = npc.interact("Siphon");
@@ -272,7 +245,7 @@ public class runespanMain extends LoopingScript {
         println(accessibleObjects);
         return objectScan.stream()
                 .filter(object -> object.getCoordinate() != null)
-                .filter(object -> boundary.contains(object.getCoordinate()))
+                .filter(Locatable::isReachable)
                 .filter(object -> accessibleObjects.contains(object.getId()))
                 .findFirst()
                 .map(object -> {
@@ -307,13 +280,6 @@ public class runespanMain extends LoopingScript {
 
     }
 
-    public void defineBoundary() {
-        Coordinate playerBL = new Coordinate(capturedLocation.getX() - x_range, capturedLocation.getY() - y_range, capturedLocation.getZ());
-        Coordinate playerTL = new Coordinate(capturedLocation.getX() + x_range, capturedLocation.getY() + y_range, capturedLocation.getZ());
-        boundary = new Area.Rectangular(playerBL, playerTL);
-        boundarySet = true;
-    }
-
     public void sleepWhileMoving() {
         int min = 1000; //ms
         int max = 2500; //ms
@@ -321,16 +287,6 @@ public class runespanMain extends LoopingScript {
         while (lp.isMoving()) {
             Execution.delay(RandomGenerator.nextInt(min, max));
         }
-    }
-
-    public void navigateToBoundary() {
-        Coordinate randomLocation = boundary.getRandomCoordinate();
-        Travel.walkTo(randomLocation);
-        sleepWhileMoving();
-    }
-
-    public boolean isInBoundary() {
-        return boundary.contains(lp.getCoordinate());
     }
 
     public boolean isAnimating() {
